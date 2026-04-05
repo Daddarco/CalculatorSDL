@@ -9,10 +9,19 @@ find_package(SDL3_ttf REQUIRED)
 
 add_executable(CalculatorSDL
     src/main.c
-    assets/Button.c
+    src/Button.c
+    src/Util.c
+    src/Calculator.c
 )
 
-target_include_directories(CalculatorSDL PRIVATE assets)
+target_include_directories(
+    CalculatorSDL PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+file(
+    COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 target_link_libraries(CalculatorSDL
     PRIVATE

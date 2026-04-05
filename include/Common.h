@@ -1,0 +1,12 @@
+#pragma once
+
+#include <SDL3/SDL.h>
+
+#define WIDTH 600.0f
+#define HEIGHT 400.0f
+#define NUM_OF_BUTTONS 18
+
+enum buttonID {
+    NUM0, NUM1, NUM2, NUM3, NUM4, NUM5, NUM6, NUM7, NUM8, NUM9,
+    POINT, ADD, SUBTRACT, MULTIPLY, DIVIDE, EQUALS, BACKSPACE, DELETE
+};

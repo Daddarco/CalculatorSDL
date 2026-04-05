@@ -1,7 +1,7 @@
-#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <SDL3_ttf/SDL_ttf.h>
-#include "../assets/Button.h"
+#include "../include/Button.h"
+#include "../include/Util.h"
+#include "../include/Calculator.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -24,6 +24,9 @@ int main(int argc, char** argv) {
     }
     initFont();
 
+    CalculatorState calcState;
+    calculator_init(&calcState);
+
     SDL_Window* window = createWindow("Calcolatrice");
     SDL_Renderer* renderer = createRenderer(window);
     whiteBG(window, renderer);
@@ -32,19 +35,24 @@ int main(int argc, char** argv) {
 
     SDL_Event ev;
     int isRunning = true;
+    bool needsRedraw = true;
     while (isRunning) {
-        while ((SDL_PollEvent(&ev)) != 0) {
+        if (needsRedraw) {
+            whiteBG(window, renderer);
+            renderText(renderer);
+            SDL_RenderPresent(renderer);
+            needsRedraw = false;
+        }
+
+        if (SDL_WaitEvent(&ev)) {
             if (ev.type == SDL_EVENT_QUIT)
                 isRunning = false;
 
             for (int i = 0; i < NUM_OF_BUTTONS; i++) {
-                pressButton(window, renderer, &ev, i, x, y);
+                if (pressButton(window, renderer, &ev, i, x, y, &calcState)) {
+                    needsRedraw = true;
+                }
             }
-            whiteBG(window, renderer);
-
-            renderText(renderer);
-
-            SDL_RenderPresent(renderer);
         }
     }
     freeSDL(window, renderer);

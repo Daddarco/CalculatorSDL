@@ -2,8 +2,8 @@
 // Created by marco on 01/06/2023.
 //
 
-#include "Button.h"
-#include <SDL3_ttf/SDL_ttf.h>
+#include "../include/Button.h"
+#include "../include/Calculator.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -13,20 +13,9 @@ typedef struct button {
     int ID;
 } Button;
 
-SDL_Color black = {0, 0, 0, SDL_ALPHA_OPAQUE};
-SDL_Color white = {244, 244, 244, SDL_ALPHA_OPAQUE};
-
 Button button[NUM_OF_BUTTONS];
-TTF_Font* font;
-TTF_Font* buttonFont;
-SDL_Texture* text[18];
-SDL_Texture* display;
 SDL_FRect textRect[18];
-SDL_FRect displayRect;
-char buffer[11];
-bool isDisplayClear = false;
 
-void updateText(SDL_Window* window, SDL_Renderer* renderer);
 void buttonText(SDL_Window* window, SDL_Renderer* renderer, int ID, SDL_FRect parentButton);
 
 void drawButton(SDL_Window* window, SDL_Renderer* renderer, int ID) {
@@ -56,126 +45,32 @@ void colorButton(SDL_Window* window, SDL_Renderer* renderer, int ID, Uint8 r, Ui
     }
 }
 
-void pressButton(SDL_Window* window, SDL_Renderer* renderer, SDL_Event* ev, int ID, int x, int y) {
+bool pressButton(SDL_Window* window, SDL_Renderer* renderer, SDL_Event* ev, int ID, int x, int y, CalculatorState* state) {
     if (ev->type == SDL_EVENT_MOUSE_BUTTON_DOWN && ev->button.button == SDL_BUTTON_LEFT) {                          // Clicchi un tasto del mouse AND Il tasto cliccato è il sinistro
         if ((ev->button.x > button[ID].rect.x && ev->button.x < (button[ID].rect.x + button[ID].rect.w))    // Il cursore è orizzontalmente nel rettangolo
-        && (ev->button.y > button[ID].rect.y && ev->button.y < (button[ID].rect.y + button[ID].rect.h)))    // AND Il cursore è verticalmente nel rettangolo
+        && (ev->button.y > button[ID].rect.y && ev->button.y < (button[ID].rect.y + button[ID].rect.h))) {   // AND Il cursore è verticalmente nel rettangolo
             button[ID].isPressed = true;                                                                // Il bottone è nello stato "premuto"
+            return true;
+        }
     }
     else if (button[ID].isPressed == true) {                                                            // Il bottone è nello stato "premuto"
         if (ev->type == SDL_EVENT_MOUSE_MOTION) {
             if (!(ev->motion.x > button[ID].rect.x && ev->motion.x < (button[ID].rect.x + button[ID].rect.w))   // Il cursore è orizzontalmente fuori dal rettangolo
-            || !(ev->motion.y > button[ID].rect.y && ev->motion.y < (button[ID].rect.y + button[ID].rect.h)))   // AND Il cursore è verticalmente fuori dal rettangolo
+            || !(ev->motion.y > button[ID].rect.y && ev->motion.y < (button[ID].rect.y + button[ID].rect.h))) {  // AND Il cursore è verticalmente fuori dal rettangolo
                 button[ID].isPressed = false;                                                               // Il bottone è nello stato "non premuto"
+                return true;
+            }
         }
         else if (ev->type == SDL_EVENT_MOUSE_BUTTON_UP && ev->button.button == SDL_BUTTON_LEFT) {                   // Il cursore è nel rettangolo e rilasci il tasto sinistro del mouse
-            //printf("\e[1;1H\e[2J");
             printf("\n\n\n\n\n\n\n\n\n\n\n\n\n");
-            getButton(window, renderer, button[ID].ID, x, y);
-            printf("%s", buffer);
+            calculator_process_input(state, button[ID].ID, x, y);
+            updateText(renderer, state->buffer);
+            printf("%s", state->buffer);
             button[ID].isPressed = false;                                                               // Il bottone è nello stato "non premuto"
+            return true;
         }
     }
-}
-
-void getButton(SDL_Window* window, SDL_Renderer* renderer, int ID, int x, int y) {
-    if (isDisplayClear != true) {
-        memset(buffer, 0, sizeof(buffer));
-        isDisplayClear = true;
-    }
-    if ((strlen(buffer) + 1) != sizeof(buffer))
-        switch (ID) {
-            case NUM0:
-                strcat(buffer, "0");
-                updateText(window, renderer);
-                break;
-            case NUM1:
-                strcat(buffer, "1");
-                updateText(window, renderer);
-                break;
-            case NUM2:
-                strcat(buffer, "2");
-                updateText(window, renderer);
-                break;
-            case NUM3:
-                strcat(buffer, "3");
-                updateText(window, renderer);
-                break;
-            case NUM4:
-                strcat(buffer, "4");
-                updateText(window, renderer);
-                break;
-            case NUM5:
-                strcat(buffer, "5");
-                updateText(window, renderer);
-                break;
-            case NUM6:
-                strcat(buffer, "6");
-                updateText(window, renderer);
-                break;
-            case NUM7:
-                strcat(buffer, "7");
-                updateText(window, renderer);
-                break;
-            case NUM8:
-                strcat(buffer, "8");
-                updateText(window, renderer);
-                break;
-            case NUM9:
-                strcat(buffer, "9");
-                updateText(window, renderer);
-                break;
-            case POINT:
-                strcat(buffer, ".");
-                updateText(window, renderer);
-                break;
-            case ADD:
-                strcat(buffer, "+");
-                updateText(window, renderer);
-                break;
-            case SUBTRACT:
-                strcat(buffer, "-");
-                updateText(window, renderer);
-                break;
-            case MULTIPLY:
-                strcat(buffer, "*");
-                updateText(window, renderer);
-                break;
-            case DIVIDE:
-                strcat(buffer, "/");
-                updateText(window, renderer);
-                break;
-            case BACKSPACE:
-                if(strlen(buffer) > 0) {
-                    buffer[strlen(buffer) - 1] = '\0';
-                    updateText(window, renderer);
-                }
-                break;
-            case DELETE:
-                memset(buffer, 0, sizeof(buffer));
-                updateText(window, renderer);
-                break;
-            default:
-                break;
-        }
-    if (ID == EQUALS)
-        printf("La somma e': %d\n", x + y);
-    else return;
-}
-
-void initFont() {
-    font = TTF_OpenFont("fonts/Roboto-Regular.ttf", 68);
-    if (font == NULL) {
-        printf("%s\n", SDL_GetError());
-        TTF_Quit();
-        SDL_Quit();
-    }
-    buttonFont = TTF_OpenFont("fonts/Roboto-Regular.ttf", 24);
-    if (buttonFont == NULL) {
-        printf("%s\n", SDL_GetError());
-        TTF_Quit();
-        SDL_Quit();
-    }
+    return false;
 }
 
 void renderText(SDL_Renderer* renderer) {
@@ -194,14 +89,6 @@ void renderText(SDL_Renderer* renderer) {
         if (text[i])
             SDL_RenderTexture(renderer, text[i], NULL, &textRect[i]);
     }
-}
-
-void updateText(SDL_Window* window, SDL_Renderer* renderer) {
-    SDL_Surface* textSurface = TTF_RenderText_LCD(font, buffer, 0, black, white);
-    display = SDL_CreateTextureFromSurface(renderer, textSurface);
-    SDL_DestroySurface(textSurface);
-    displayRect.x = displayRect.y = 0;
-    SDL_GetTextureSize(display, &displayRect.w, &displayRect.h);
 }
 
 void initButtons(SDL_Window* window, SDL_Renderer* renderer) {
@@ -312,17 +199,4 @@ void buttonText(SDL_Window* window, SDL_Renderer* renderer, int ID, SDL_FRect pa
     textRect[ID].x = parentButton.x + ((parentButton.w / 5) * 2);
     textRect[ID].y = parentButton.y + (parentButton.h / 6);
     SDL_GetTextureSize(text[ID], &textRect[ID].w, &textRect[ID].h);
-}
-
-void freeSDL(SDL_Window* window, SDL_Renderer* renderer) {
-    TTF_CloseFont(font);
-    TTF_CloseFont(buttonFont);
-    SDL_DestroyTexture(display);
-    for (int i = 0; i < NUM_OF_BUTTONS; ++i) {
-        if (text[i]) SDL_DestroyTexture(text[i]);
-    }
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    TTF_Quit();
-    SDL_Quit();
 }
