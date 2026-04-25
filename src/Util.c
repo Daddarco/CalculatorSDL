@@ -22,7 +22,7 @@ void initFont() {
         TTF_Quit();
         SDL_Quit();
     }
-    buttonFont = TTF_OpenFont("fonts/Roboto-Regular.ttf", 24);
+    buttonFont = TTF_OpenFont("fonts/Roboto-Regular.ttf", 48);
     if (buttonFont == NULL) {
         printf("%s\n", SDL_GetError());
         TTF_Quit();

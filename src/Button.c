@@ -10,6 +10,7 @@
 typedef struct button {
     SDL_FRect rect;
     bool isPressed;
+    bool isHovered;
     int ID;
 } Button;
 
@@ -18,14 +19,29 @@ SDL_FRect textRect[18];
 
 void buttonText(SDL_Window* window, SDL_Renderer* renderer, int ID, SDL_FRect parentButton);
 
-void drawButton(SDL_Window* window, SDL_Renderer* renderer, int ID) {
-    if (!SDL_RenderRect(renderer, &button[ID].rect)) {
-        printf("%s\n", SDL_GetError());
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        exit(-5);
+void drawButton(SDL_Renderer* renderer, int ID) {
+    if (ID < 10 || ID == POINT) {
+        // Grigio scuro
+        if (button[ID].isPressed) SDL_SetRenderDrawColor(renderer, 80, 80, 80, SDL_ALPHA_OPAQUE);
+        else if (button[ID].isHovered) SDL_SetRenderDrawColor(renderer, 100, 100, 100, SDL_ALPHA_OPAQUE);
+        else SDL_SetRenderDrawColor(renderer, 60, 60, 60, SDL_ALPHA_OPAQUE);
+    } else if (ID == EQUALS) {
+        // Verde
+        if (button[ID].isPressed) SDL_SetRenderDrawColor(renderer, 30, 130, 70, SDL_ALPHA_OPAQUE);
+        else if (button[ID].isHovered) SDL_SetRenderDrawColor(renderer, 46, 204, 113, SDL_ALPHA_OPAQUE);
+        else SDL_SetRenderDrawColor(renderer, 39, 174, 96, SDL_ALPHA_OPAQUE);
+    } else {
+        // Arancione
+        if (button[ID].isPressed) SDL_SetRenderDrawColor(renderer, 180, 90, 20, SDL_ALPHA_OPAQUE);
+        else if (button[ID].isHovered) SDL_SetRenderDrawColor(renderer, 230, 126, 34, SDL_ALPHA_OPAQUE);
+        else SDL_SetRenderDrawColor(renderer, 211, 84, 0, SDL_ALPHA_OPAQUE);
     }
+
+    SDL_RenderFillRect(renderer, &button[ID].rect);
+
+    // Bordo
+    SDL_SetRenderDrawColor(renderer, 30, 30, 30, SDL_ALPHA_OPAQUE);
+    SDL_RenderRect(renderer, &button[ID].rect);
 }
 
 void colorButton(SDL_Window* window, SDL_Renderer* renderer, int ID, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
@@ -46,49 +62,55 @@ void colorButton(SDL_Window* window, SDL_Renderer* renderer, int ID, Uint8 r, Ui
 }
 
 bool pressButton(SDL_Window* window, SDL_Renderer* renderer, SDL_Event* ev, int ID, int x, int y, CalculatorState* state) {
-    if (ev->type == SDL_EVENT_MOUSE_BUTTON_DOWN && ev->button.button == SDL_BUTTON_LEFT) {                          // Clicchi un tasto del mouse AND Il tasto cliccato è il sinistro
-        if ((ev->button.x > button[ID].rect.x && ev->button.x < (button[ID].rect.x + button[ID].rect.w))    // Il cursore è orizzontalmente nel rettangolo
-        && (ev->button.y > button[ID].rect.y && ev->button.y < (button[ID].rect.y + button[ID].rect.h))) {   // AND Il cursore è verticalmente nel rettangolo
-            button[ID].isPressed = true;                                                                // Il bottone è nello stato "premuto"
-            return true;
-        }
-    }
-    else if (button[ID].isPressed == true) {                                                            // Il bottone è nello stato "premuto"
-        if (ev->type == SDL_EVENT_MOUSE_MOTION) {
-            if (!(ev->motion.x > button[ID].rect.x && ev->motion.x < (button[ID].rect.x + button[ID].rect.w))   // Il cursore è orizzontalmente fuori dal rettangolo
-            || !(ev->motion.y > button[ID].rect.y && ev->motion.y < (button[ID].rect.y + button[ID].rect.h))) {  // AND Il cursore è verticalmente fuori dal rettangolo
-                button[ID].isPressed = false;                                                               // Il bottone è nello stato "non premuto"
-                return true;
+    bool hasToRedraw = false;
+    bool isHovering = (ev->motion.x > button[ID].rect.x && ev->motion.x < (button[ID].rect.x + button[ID].rect.w))      // Il cursore è orizzontalmente nel rettangolo
+                    && (ev->motion.y > button[ID].rect.y && ev->motion.y < (button[ID].rect.y + button[ID].rect.h));    // AND Il cursore è verticalmente nel rettangolo
+
+    switch (ev->type) {
+        case SDL_EVENT_MOUSE_MOTION:
+            if (isHovering != button[ID].isHovered) {
+                button[ID].isHovered = isHovering;
+                if (!isHovering) button[ID].isPressed = false;
+                hasToRedraw = true;
             }
-        }
-        else if (ev->type == SDL_EVENT_MOUSE_BUTTON_UP && ev->button.button == SDL_BUTTON_LEFT) {                   // Il cursore è nel rettangolo e rilasci il tasto sinistro del mouse
-            printf("\n\n\n\n\n\n\n\n\n\n\n\n\n");
-            calculator_process_input(state, button[ID].ID, x, y);
-            updateText(renderer, state->buffer);
-            printf("%s", state->buffer);
-            button[ID].isPressed = false;                                                               // Il bottone è nello stato "non premuto"
-            return true;
-        }
+        break;
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            if (button[ID].isHovered && ev->button.button == SDL_BUTTON_LEFT) {
+                button[ID].isPressed = true;
+                hasToRedraw = true;
+            }
+        break;
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+            if (button[ID].isPressed && ev->button.button == SDL_BUTTON_LEFT) {
+                printf("\n\n\n\n\n\n\n\n\n\n\n");
+                calculator_process_input(state, button[ID].ID, x, y);
+                updateText(renderer, state->buffer);
+                printf("%s", state->buffer);
+                button[ID].isPressed = false;
+                hasToRedraw = true;
+            }
+        break;
     }
-    return false;
+    return hasToRedraw;
 }
 
-void renderText(SDL_Renderer* renderer) {
+void drawButtonsGraphics(SDL_Renderer* renderer) {
     for (int i = 0; i < NUM_OF_BUTTONS; i++) {
-        if (i < 10) SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
-        else if (i == EQUALS) SDL_SetRenderDrawColor(renderer, 0, 255, 255, SDL_ALPHA_OPAQUE);
-        else SDL_SetRenderDrawColor(renderer, 200, 200, 200, SDL_ALPHA_OPAQUE);
-
-        SDL_RenderFillRect(renderer, &button[i].rect);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-        SDL_RenderRect(renderer, &button[i].rect);
+        drawButton(renderer, i);
     }
+}
 
+void drawLabels(SDL_Renderer* renderer) {
     SDL_RenderTexture(renderer, display, NULL, &displayRect);
     for (int i = 0; i < NUM_OF_BUTTONS; ++i) {
         if (text[i])
             SDL_RenderTexture(renderer, text[i], NULL, &textRect[i]);
     }
+}
+
+void renderText(SDL_Renderer* renderer) {
+    drawButtonsGraphics(renderer);
+    drawLabels(renderer);
 }
 
 void initButtons(SDL_Window* window, SDL_Renderer* renderer) {
@@ -108,6 +130,7 @@ void initButtons(SDL_Window* window, SDL_Renderer* renderer) {
             button[firstPart[currentButton]].rect.w = (BUTTON_WIDTH);
             button[firstPart[currentButton]].rect.h = (BUTTON_HEIGHT);
             button[firstPart[currentButton]].isPressed = false;
+            button[firstPart[currentButton]].isHovered = false;
             button[firstPart[currentButton]].ID = firstPart[currentButton];
             buttonText(window, renderer, firstPart[currentButton], button[firstPart[currentButton]].rect);
             hPad += 12;
@@ -126,6 +149,7 @@ void initButtons(SDL_Window* window, SDL_Renderer* renderer) {
         button[secondPart[rowElement]].rect.w = (BUTTON_WIDTH) + equalButtonModifier;
         button[secondPart[rowElement]].rect.h = (BUTTON_HEIGHT);
         button[secondPart[rowElement]].isPressed = false;
+        button[secondPart[rowElement]].isHovered = false;
         button[secondPart[rowElement]].ID = secondPart[rowElement];
         buttonText(window, renderer, secondPart[rowElement], button[secondPart[rowElement]].rect);
         hPad += 12;
@@ -196,7 +220,7 @@ void buttonText(SDL_Window* window, SDL_Renderer* renderer, int ID, SDL_FRect pa
     SDL_Surface* textSurface = TTF_RenderText_LCD(buttonFont, glyph, 0, black, white);
     text[ID] = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_DestroySurface(textSurface);
-    textRect[ID].x = parentButton.x + ((parentButton.w / 5) * 2);
-    textRect[ID].y = parentButton.y + (parentButton.h / 6);
     SDL_GetTextureSize(text[ID], &textRect[ID].w, &textRect[ID].h);
+    textRect[ID].x = parentButton.x + ((parentButton.w / 2) - (textRect[ID].w / 2));
+    textRect[ID].y = parentButton.y + ((parentButton.h / 2) - (textRect[ID].h / 2));
 }

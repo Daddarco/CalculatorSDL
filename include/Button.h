@@ -12,7 +12,7 @@
 
 typedef struct CalculatorState CalculatorState;
 
-void drawButton(SDL_Window* window, SDL_Renderer* renderer, int ID);
+void drawButton(SDL_Renderer* renderer, int ID);
 void colorButton(SDL_Window* window, SDL_Renderer* renderer, int ID, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 bool pressButton(SDL_Window* window, SDL_Renderer* renderer, SDL_Event* ev, int ID, int x, int y, CalculatorState* state);
 void renderText(SDL_Renderer* renderer);
