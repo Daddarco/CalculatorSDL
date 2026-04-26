@@ -12,9 +12,6 @@ void whiteBG(SDL_Window* window, SDL_Renderer* renderer);
 
 int main(int argc, char** argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
-    int x = 0, y = 0;
-    printf("Inserisci due numeri con cui fare la somma: ");
-    scanf("%d %d", &x, &y);
 
     initializeSDL();
     if (!TTF_Init()) {
@@ -49,7 +46,7 @@ int main(int argc, char** argv) {
                 isRunning = false;
 
             for (int i = 0; i < NUM_OF_BUTTONS; i++) {
-                if (pressButton(window, renderer, &ev, i, x, y, &calcState)) {
+                if (pressButton(window, renderer, &ev, i, &calcState)) {
                     needsRedraw = true;
                 }
             }

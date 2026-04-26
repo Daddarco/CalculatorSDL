@@ -61,7 +61,7 @@ void colorButton(SDL_Window* window, SDL_Renderer* renderer, int ID, Uint8 r, Ui
     }
 }
 
-bool pressButton(SDL_Window* window, SDL_Renderer* renderer, SDL_Event* ev, int ID, int x, int y, CalculatorState* state) {
+bool pressButton(SDL_Window* window, SDL_Renderer* renderer, SDL_Event* ev, int ID, CalculatorState* state) {
     bool hasToRedraw = false;
     bool isHovering = (ev->motion.x > button[ID].rect.x && ev->motion.x < (button[ID].rect.x + button[ID].rect.w))      // Il cursore è orizzontalmente nel rettangolo
                     && (ev->motion.y > button[ID].rect.y && ev->motion.y < (button[ID].rect.y + button[ID].rect.h));    // AND Il cursore è verticalmente nel rettangolo
@@ -83,7 +83,7 @@ bool pressButton(SDL_Window* window, SDL_Renderer* renderer, SDL_Event* ev, int 
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (button[ID].isPressed && ev->button.button == SDL_BUTTON_LEFT) {
                 printf("\n\n\n\n\n\n\n\n\n\n\n");
-                calculator_process_input(state, button[ID].ID, x, y);
+                calculator_process_input(state, button[ID].ID);
                 updateText(renderer, state->buffer);
                 printf("%s", state->buffer);
                 button[ID].isPressed = false;
