@@ -31,9 +31,16 @@ void initFont() {
 }
 
 void updateText(SDL_Renderer* renderer, const char* buffer) {
-    if (buffer == NULL || strlen(buffer) < 0) return;
-    SDL_Surface* textSurface = TTF_RenderText_LCD(font, buffer, 0, black, white);
-    if (display) SDL_DestroyTexture(display);
+    if (display) {
+        SDL_DestroyTexture(display);
+        display = NULL;
+    }
+    displayRect.w = displayRect.h = 0;
+
+    if (buffer == NULL || strlen(buffer) == 0) return;
+
+    // Usiamo Blended per avere trasparenza e il colore 'white' (chiaro) per il testo
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, buffer, 0, white);
     display = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_DestroySurface(textSurface);
     displayRect.x = displayRect.y = 0;

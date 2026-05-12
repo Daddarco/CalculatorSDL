@@ -20,15 +20,19 @@ static int get_precedence(char op) {
 }
 
 void calculator_process_input(CalculatorState* state, int buttonID) {
-    size_t len = strlen(state->buffer);
-    
-    // Se il display deve essere pulito (dopo un errore o risultato)
+    // 1. Gestione speciale post-risultato
     if (state->isDisplayClear) {
-        memset(state->buffer, 0, sizeof(state->buffer));
+        bool is_op = (buttonID == ADD || buttonID == SUBTRACT || buttonID == MULTIPLY || buttonID == DIVIDE);
+        if (!is_op) {
+            // Se non è un operatore, resetta tutto prima di procedere
+            memset(state->buffer, 0, sizeof(state->buffer));
+        }
         state->isDisplayClear = false;
-        len = 0;
     }
 
+    size_t len = strlen(state->buffer);
+
+    // 2. Gestione pulsanti speciali
     if (buttonID == DELETE) {
         memset(state->buffer, 0, sizeof(state->buffer));
         return;
@@ -43,6 +47,7 @@ void calculator_process_input(CalculatorState* state, int buttonID) {
         return;
     }
 
+    // 3. Elaborazione carattere da inserire
     if (len + 1 < sizeof(state->buffer)) {
         char next_char = '\0';
         bool is_num = false;
@@ -65,37 +70,33 @@ void calculator_process_input(CalculatorState* state, int buttonID) {
         }
 
         if (next_char != '\0') {
-            // Regola 1: Il primo carattere può essere un numero o il segno meno
+            // Regole di validazione
             if (len == 0 && !is_num && next_char != '-') return;
-
-            // Regola 2: Il punto si può mettere solo dopo un numero
             if (next_char == '.' && (len == 0 || !isdigit(state->buffer[len-1]))) return;
-
-            // Regola 3: Massimo un punto per ogni numero
             if (next_char == '.') {
                 for (int i = (int)len - 1; i >= 0; i--) {
                     if (is_operator(state->buffer[i])) break;
-                    if (state->buffer[i] == '.') return; 
+                    if (state->buffer[i] == '.') return;
                 }
             }
 
+            // Gestione operatori (sostituzione e unari)
             if (is_operator(next_char) && len > 0 && is_operator(state->buffer[len - 1])) {
-                // Se inseriamo un '-' dopo un altro operatore (che non sia già un '-'), lo permettiamo
                 if (next_char == '-' && state->buffer[len - 1] != '-') {
                     state->buffer[len] = next_char;
+                    state->buffer[len + 1] = '\0';
                 } else {
-                    // Se stiamo sostituendo e c'è una sequenza tipo "*-", dobbiamo rimuovere entrambi
                     if (len > 1 && is_operator(state->buffer[len - 2])) {
                         state->buffer[len - 2] = next_char;
                         state->buffer[len - 1] = '\0';
                     } else {
-                        // Impediamo che il primo carattere diventi un operatore diverso da '-'
                         if (len == 1 && next_char != '-') return;
                         state->buffer[len - 1] = next_char;
                     }
                 }
             } else {
                 state->buffer[len] = next_char;
+                state->buffer[len + 1] = '\0'; // Assicura terminazione
             }
         }
     }
@@ -104,26 +105,21 @@ void calculator_process_input(CalculatorState* state, int buttonID) {
 void calculator_evaluate(CalculatorState* state) {
     if (strlen(state->buffer) == 0) return;
 
-    // --- 1. Tokenizzazione ---
-    double values[16];
-    char ops[16];
-    int v_top = -1, o_top = -1;
-
-    // --- 2. Shunting-Yard + RPN simultaneo ---
-    // Useremo due stack per calcolare direttamente mentre processiamo
     double num_stack[16];
     char op_stack[16];
     int ns_ptr = -1, os_ptr = -1;
 
     char* p = state->buffer;
     while (*p) {
-        // Un '-' è un segno se è all'inizio o segue un altro operatore
         if ((*p == '-' && (p == state->buffer || is_operator(*(p - 1)))) || isdigit(*p) || *p == '.') {
-            double val = strtod(p, &p);
+            char* endp;
+            double val = strtod(p, &endp);
+            if (p == endp) { p++; continue; } // Evita loop infiniti
             num_stack[++ns_ptr] = val;
+            p = endp;
         } else if (is_operator(*p)) {
             while (os_ptr >= 0 && get_precedence(op_stack[os_ptr]) >= get_precedence(*p)) {
-                // Esegui l'operazione in cima allo stack
+                if (ns_ptr < 1) break;
                 double b = num_stack[ns_ptr--];
                 double a = num_stack[ns_ptr--];
                 char op = op_stack[os_ptr--];
@@ -139,8 +135,7 @@ void calculator_evaluate(CalculatorState* state) {
         }
     }
 
-    // Risolvi le operazioni rimanenti
-    while (os_ptr >= 0) {
+    while (os_ptr >= 0 && ns_ptr >= 1) {
         double b = num_stack[ns_ptr--];
         double a = num_stack[ns_ptr--];
         char op = op_stack[os_ptr--];
@@ -150,9 +145,9 @@ void calculator_evaluate(CalculatorState* state) {
         if (op == '/') num_stack[++ns_ptr] = (b != 0) ? a / b : 0;
     }
 
+    memset(state->buffer, 0, sizeof(state->buffer));
     if (ns_ptr == 0) {
-        double res = num_stack[0];
-        snprintf(state->buffer, sizeof(state->buffer), "%g", res);
+        snprintf(state->buffer, sizeof(state->buffer), "%g", num_stack[0]);
     } else {
         strcpy(state->buffer, "Error");
     }

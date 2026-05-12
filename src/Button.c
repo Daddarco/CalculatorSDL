@@ -217,7 +217,7 @@ void buttonText(SDL_Window* window, SDL_Renderer* renderer, int ID, SDL_FRect pa
         default:
             break;
     }
-    SDL_Surface* textSurface = TTF_RenderText_LCD(buttonFont, glyph, 0, black, white);
+    SDL_Surface* textSurface = TTF_RenderText_Blended(buttonFont, glyph, 0, white);
     text[ID] = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_DestroySurface(textSurface);
     SDL_GetTextureSize(text[ID], &textRect[ID].w, &textRect[ID].h);
