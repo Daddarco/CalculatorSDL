@@ -42,14 +42,24 @@ int main(int argc, char** argv) {
         }
 
         if (SDL_WaitEvent(&ev)) {
-            if (ev.type == SDL_EVENT_QUIT)
-                isRunning = false;
-
-            for (int i = 0; i < NUM_OF_BUTTONS; i++) {
-                if (pressButton(window, renderer, &ev, i, &calcState)) {
+            // Processa TUTTI gli eventi in coda (fondamentale per Wayland/libdecor)
+            do {
+                if (ev.type == SDL_EVENT_QUIT)
+                    isRunning = false;
+                
+                // Forza il ridisegno se la finestra viene mostrata o riprende focus
+                if (ev.type == SDL_EVENT_WINDOW_EXPOSED || 
+                    ev.type == SDL_EVENT_WINDOW_FOCUS_GAINED ||
+                    ev.type == SDL_EVENT_WINDOW_SHOWN) {
                     needsRedraw = true;
                 }
-            }
+
+                for (int i = 0; i < NUM_OF_BUTTONS; i++) {
+                    if (pressButton(window, renderer, &ev, i, &calcState)) {
+                        needsRedraw = true;
+                    }
+                }
+            } while (SDL_PollEvent(&ev));
         }
     }
     freeSDL(window, renderer);
